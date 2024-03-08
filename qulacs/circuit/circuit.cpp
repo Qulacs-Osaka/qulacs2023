@@ -2,6 +2,15 @@
 
 #include <ranges>
 
+#include "gate/gate_factory.hpp"
+#include "gate/gate_npair_qubit.hpp"
+#include "gate/gate_one_control_one_target.hpp"
+#include "gate/gate_one_qubit.hpp"
+#include "gate/gate_pauli.hpp"
+#include "gate/gate_quantum_matrix.hpp"
+#include "gate/gate_two_qubit.hpp"
+#include "gate/gate_zero_qubit.hpp"
+
 namespace qulacs {
 UINT Circuit::calculate_depth() const {
     std::vector<UINT> filled_step(_n_qubits, 0ULL);
@@ -68,6 +77,41 @@ Circuit Circuit::get_inverse() const {
         icircuit.add_gate(gate->get_inverse());
     }
     return icircuit;
+}
+
+void Circuit::optimize() {
+    std::vector<Gate> optimized;
+    UINT no_waiting_gate = std::numeric_limits<qulacs::UINT>::max();
+    std::vector<UINT> waiting_gate(_n_qubits, no_waiting_gate);
+    double global_phase = 0.;
+    for (UINT i : std::views::iota(_gate_list.size())) {
+        const Gate& gate = _gate_list[i];
+        if (gate.gate_type() == GateType::I) continue;
+        if (gate.gate_type() == GateType::GlobalPhase) {
+            global_phase += GlobalPhaseGate(gate)->angle();
+            continue;
+        }
+        auto control_target = {gate->get_control_qubit_list(), gate->get_target_qubit_list()};
+        auto target_view = control_target | std::views::join;
+        UINT waiting = [&] {
+            UINT res = no_waiting_gate;
+            for (UINT target : target_view) {
+                if (waiting_gate[target] == res) continue;
+                if (waiting_gate[target] == no_waiting_gate) continue;
+                if (res != no_waiting_gate) return no_waiting_gate;
+                res = waiting_gate[target];
+            }
+            return res;
+        }();
+        auto merge_gate = [](Gate g1, Gate g2) -> std::optional<std::pair<Gate, double>> {
+            auto g1type = g1.gate_type(), g2type = g2.gate_type();
+            if (g1type == GateType::X) {
+                if (g2type == GateType::X) return std::make_pair(I(), 0.);
+                if (g2type == GateType::Y) return std::make_pair(Z(XGate(g1)->target()), -PI() / 2);
+                if (g2type == GateType::Z) return std::make_pair(Y(XGate(g1)->target()), PI() / 2);
+            }
+        };
+    }
 }
 
 void Circuit::check_gate_is_valid(const Gate& gate) const {
