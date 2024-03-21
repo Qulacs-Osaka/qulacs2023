@@ -37,3 +37,5 @@
 /bin
 /build
 /typings
+/api/__pycache__
+/api/build
