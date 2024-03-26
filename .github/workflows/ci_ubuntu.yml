@@ -30,11 +30,11 @@ jobs:
 
       - name: Install gcc-11/g++-11
         run: |
-          sudo apt update && \
-          sudo apt install -y software-properties-common && \
-          sudo apt update && \
-          sudo apt install -y gcc-11 g++-11 && \
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100 && \
+          sudo apt update
+          sudo apt install -y software-properties-common
+          sudo apt update
+          sudo apt install -y gcc-11 g++-11
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 100
 
       - name: Setup cmake
@@ -65,6 +65,17 @@ jobs:
       - name: Test in Ubuntu
         run: |
           OMP_PROC_BIND=false ninja test -C build -j $(nproc)
+
+      - name: Build docs
+        run: |
+          cd ./api
+          make html
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_build/html
+
 
   nvcc-build:
     name: NVCC build
