@@ -2,17 +2,15 @@ import os
 
 import qulacs2023
 
-
-
 project = 'scaluq'
 copyright = '2024, Fuji Lab.'
 author = 'Fuji Lab.'
 release = '0.0.1'
 
-# The `extensions` list should already be in here from `sphinx-quickstart`
 extensions = [
     "sphinx.ext.napoleon",
     'autoapi.extension',
+    'sphinx.ext.githubpages',
 ]
 
 autoapi_type = "python"
